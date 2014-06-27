@@ -1,0 +1,117 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; iRCTunes - iTunes on Demand Plugin              ;
+; Author: TheGeekLord <petpow@thegeeklord.net>    ;
+; License: GNU General Public License v3.0        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+on *:START: {
+  if (!$itnumversion) {
+    .unload -rs $shortfn($script)
+  }
+  elseif ($itnumversion < 3.0.0) { 
+    echo -a [iRCTunes] Sorry - the iRCTunes plugin it_demand is not supported by your version of iRCTunes - please upgrade to v3.0 minimum or use /itunes demand
+    .unload -rs $shortfn($script)
+  }
+  else {
+    itpsettings enabled false
+    if (!$itpsettings(theme)) {
+      itpsettings theme I am listening to <BOLD>'^TRACK^'</BOLD> by <BOLD>^ARTIST^</BOLD> from the album <BOLD>^ALBUM^</BOLD>
+    }
+  }
+}
+alias itdemand {
+  if (!$1) { 
+    echo -a $itcolor(ERROR,You must enter a command - for a list of commands type "/itdemand help")
+  }
+  elseif ($1 == help) {
+    echo -a === iRCTunes: iTunes on Demand Help ===
+    echo -a /itdemand help     -  Displays a list of commands which can be used with iTunes on Demand
+    echo -a /itdemand themes   -  Displays the iTunes on Demand theme editor and theme help
+    echo -a /itdemand toggle   -  Toggles iTunes on Demand's status between enabled and disabled
+    echo -a  iRCTunes: iTunes on Demand copyright $chr(169) $asctime(yyyy) TheGeekLord (irctunes.sourceforge.net)
+  }
+  elseif ($1 == toggle) {
+    if ($itpsettings(enabled) == false) {
+      itpsettings enabled true
+      scid -at1 ame has now enabled iTunes On Demand - type !itunes or /ctcp $me itunes to see what song i am currently playing in iTunes [iRCTunes]
+      echo -a $itcolor(INFORMATION,iTunes on Demand has now been enabled)
+    }
+    else {
+      itpsettings enabled false
+      scid -at1 ame now has disabled iTunes On Demand [iRCTunes] 
+      echo -a $itcolor(INFORMATION,iTunes on Demand has now been disabled)
+    }
+  }
+  elseif ($1 == themes) {
+    if ($dialog(it_dtheme)) {
+      dialog -x it_dtheme
+    }
+    else {
+      dialog -m it_dtheme it_dtheme
+    }
+  }
+}
+alias -l itpsettings {
+  if ($isid == $true) return $readini($itconfig, it_demand, $$1)
+  else writeini $itconfig it_demand $$1 $$2-
+}
+on *:text:!itunes:#: {
+  if ($itpsettings(enabled) == true) {
+    if (!$com(irctunes)) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is not currently connected to iTunes)
+    }
+    elseif ($com(irctunes)) && ($itinfo(shortlocation) == COM Error) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is unable to fetch now playing information at the moment due to an error)
+    }
+    else {
+      .notice $nick $itcolor(REMOTE,$itparsetheme($itpsettings(theme)))
+    }
+  }
+  else {
+    .notice $nick $itcolor(REMOTE,iTunes on Demand is currently disabled)
+  }
+  .echo -a $itcolor(INFORMATION,$+($iif($network,$network,$server),->,$nick) requested information about your currently playing song in iTunes via iTunes on Demand)
+}
+ctcp *:itunes: {
+  if ($itpsettings(enabled) == true) {
+    if (!$com(irctunes)) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is not currently connected to iTunes)
+    }
+    elseif ($com(irctunes)) && ($itinfo(shortlocation) == COM Error) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is unable to fetch now playing information at the moment due to an error)
+    }
+    else {
+      .notice $nick $itcolor(REMOTE,$nick $itparsetheme($itpsettings(theme)))
+    }
+  }
+  else {
+    .notice $nick $itcolor(REMOTE,iTunes on Demand is currently disabled)
+  }
+  .echo -a $itcolor(INFORMATION,$+($iif($network,$network,$server),->,$nick) requested information about your currently playing song in iTunes via iTunes on Demand CTCP)
+  halt
+
+}
+dialog -l it_dtheme {
+  title "iRCTunes Theme Editor"
+  size -1 -1 192 150
+  option dbu
+  text "iRCTunes :: irctunes.sf.net", 1, 1 143 195 8, disable center
+  text "About iTunes on Demand", 2, 5 5 65 8
+  text "iTunes on Demand is a feature of iRCTunes which allows users to get information about your current playing track on demand (when they want it) via the !itunes channel command or the ITUNES ctcp command (ctcp iDemo itunes). An iTunes on Demand theme tells iRCTunes the format it should send information about your current playing track in when requested. All iTunes on Demand traffic is sent using notices.", 3, 17 13 175 41
+  text "Demand (/notice) Themes", 4, 5 57 65 8
+  button "[iRCTunes] I am listening to 'TRACK' by ARTIST from ALBUM", 5, 17 65 170 15, default
+  button "[iRCTunes] iDemo is listening to TRACK by ARTIST from ALBUM", 6, 17 80 170 15, default
+  button "[iRCTunes] Track: TRACK ~ Artist: ARTIST ~ Album: ALBUM", 7, 17 95 170 15, default
+  text "Manual Theme Editor", 8, 4 113 55 8
+  edit "<theme goes here>", 9, 17 121 170 10, autohs
+  button "Save", 10, 1 133 95 10
+  button "Reset", 11, 96 133 95 10
+}
+
+on *:dialog:it_dtheme:sclick:5: did -o it_dtheme 9 1 I am listening to <BOLD>'^TRACK^'</BOLD> by <BOLD>^ARTIST^</BOLD> from <BOLD>^ALBUM^</BOLD>
+on *:dialog:it_dtheme:sclick:6: did -o it_dtheme 9 1 $!me is listening to ^TRACK^ by ^ARTIST^ from ^ALBUM^
+on *:dialog:it_dtheme:sclick:7: did -o it_dtheme 9 1 Track: ^TRACK^ ~ Artist: ^ARTIST^ ~ Album: ^ALBUM^
+on *:dialog:it_dtheme:sclick:10: itpsettings theme $did(it_dtheme, 9).text
+on *:dialog:it_dtheme:sclick:11: did -o it_dtheme 9 1 $itpsettings(theme)
+on *:dialog:it_dtheme:init:*: {
+  did -o it_dtheme 9 1 $itpsettings(theme) 
+}

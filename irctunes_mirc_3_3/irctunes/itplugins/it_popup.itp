@@ -1,0 +1,78 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; iRCTunes - Popup Plugin                         ;
+; Author: TheGeekLord <petpow@thegeeklord.net>    ;
+; License: GNU General Public License v3.0        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+on *:START: {
+  if (!$itnumversion) {
+    .unload -rs $shortfn($script)
+  }
+  elseif ($itnumversion < 3.0.0) {
+    echo -a [iRCTunes] Sorry - the iRCTunes plugin it_popup is not supported by your version of iRCTunes - please upgrade to v3.0 minimum
+    .unload -rs $shortfn($script)
+  }
+}
+alias itpopup {
+  if ($dialog(it_popup)) {
+    .timeripu off
+    dialog -x it_popup
+  }
+  else dialog -m it_popup it_popup
+}
+alias itupdatepopup {
+  if ($itsettings(achkupdate) = true) { did -a it_popup 3 [E] Auto Update Checking }
+  else { did -a it_popup 3 [D] Auto Update Checking }
+  if ($itsettings(autoconn) = true) { did -a it_popup 4 [E] Auto Connect to iTunes }
+  else { did -a it_popup 4 [D] Auto Connect to iTunes }
+  if ($timer(abc)) { did -a it_popup 5 [E] Auto Broadcast Track }
+  else { did -a it_popup 5 [D] Auto Broadcast Track }
+}
+dialog -l it_popup {
+  title "iRCTunes :: Control Popup"
+  size -1 -1 160 120
+  option dbu
+  text "iRCTunes Controls", 1, 1 0 160 8, center
+  button "About iRCTunes", 2, 80 10 79 10
+  button "Auto Update Checking", 3, 80 100 79 10
+  button "Auto Connect to iTunes", 4, 80 90 79 10
+  button "Auto Broadcast Track", 5, 1 10 79 10
+  button "Broadcast Track", 6, 1 20 79 10
+  button "Check for Updates", 7, 80 20 79 10
+  button "Send Track Info to Clipboard", 8, 1 30 79 10
+  button "Go to iRCTunes Website", 9, 80 30 79 10
+  button "Disconnect from iTunes", 10, 1 40 79 10
+  button "iTunes Track Information", 11, 80 40 79 10
+  button "(Re)connect to iTunes", 12, 1 50 79 10
+  button "Send Track via DCC", 13, 80 50 79 10
+  button "Show Track", 14, 1 60 79 10
+  button "Advertise iRCTunes", 15, 80 60 79 10
+  button "iRCTunes COM Status", 16, 1 70 79 10
+  button "iRCTunes Support", 17, 1 80 79 10
+  button "Show Now Playing Theme", 18, 80 70 79 10
+  button "iRCTunes Theme Manager", 19, 1 90 79 10
+  button "iRCTunes Main Help", 20, 80 80 79 10
+  button "iRCTunes Plugin List", 21, 1 100 79 10
+  text "iRCTunes :: irctunes.sf.net", 22, 0 112 160 8, disable center
+}
+on *:dialog:it_popup:sclick:2: itunes about
+on *:dialog:it_popup:sclick:6: itunes broadcast
+on *:dialog:it_popup:sclick:7: itunes checkupdate
+on *:dialog:it_popup:sclick:8: itunes clipboard
+on *:dialog:it_popup:sclick:9: itunes website
+on *:dialog:it_popup:sclick:10: itunes disconnect
+on *:dialog:it_popup:sclick:11: itunes info
+on *:dialog:it_popup:sclick:12: itunes reconnect
+on *:dialog:it_popup:sclick:13: itunes sendtrack
+on *:dialog:it_popup:sclick:14: itunes show
+on *:dialog:it_popup:sclick:15: itunes advertise
+on *:dialog:it_popup:sclick:16: itunes comstatus
+on *:dialog:it_popup:sclick:17: itunes support
+on *:dialog:it_popup:sclick:18: itunes theme
+on *:dialog:it_popup:sclick:19: itunes themes
+on *:dialog:it_popup:sclick:20: itunes help
+on *:dialog:it_popup:sclick:21: itunes plugins
+on *:dialog:it_popup:sclick:3: { itunes autoupdatecheck | itupdatepopup }
+on *:dialog:it_popup:sclick:4: { itunes autoconn | itupdatepopup }
+on *:dialog:it_popup:sclick:5: { itunes autobroadcast | itupdatepopup }
+on *:dialog:it_popup:init:*: { itupdatepopup | .timeripu 0 1 itupdatepopup }
+on *:dialog:it_popup:close:*: .timeripu off

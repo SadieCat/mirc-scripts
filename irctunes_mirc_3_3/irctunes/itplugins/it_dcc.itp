@@ -1,0 +1,81 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; iRCTunes - iTunes DCC Server Plugin             ;
+; Author: TheGeekLord <petpow@thegeeklord.net>    ;
+; License: GNU General Public License v3.0        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+on *:START: {
+  if (!$itnumversion) {
+    .unload -rs $shortfn($script)
+  }
+  elseif ($itnumversion < 3.0.0) { 
+    echo -a [iRCTunes] Sorry - the iRCTunes plugin it_dcc is not supported by your version of iRCTunes - please upgrade to v3.0 minimum or use /itunes dcc
+    .unload -rs $shortfn($script)
+  }
+  else {
+    itpsettings enabled false
+  }
+}
+alias itdcc {
+  if (!$1) { 
+    echo -a $itcolor(ERROR,You must enter a command - for a list of commands type "/itdcc help")
+  }
+  elseif ($1 == help) {
+    echo -a === iRCTunes: iTunes DCC Server Help ===
+    echo -a /itdcc help     -  Displays a list of commands which can be used with iTunes DCC Server
+    echo -a /itdcc toggle   -  Toggles iTunes DCC Server's status between enabled and disabled
+    echo -a iRCTunes: iTunes DCC Server copyright $chr(169) $asctime(yyyy) TheGeekLord (irctunes.sourceforge.net)
+  }
+  elseif ($1 == toggle) {
+    if ($itpsettings(enabled) == false) {
+      itpsettings enabled true
+      scid -at1 ame has now enabled their iRCTunes DCC Server - type !getsong or /ctcp $me getsong to get a copy of the song i am currently playing in iTunes [iRCTunes]
+      echo -a $itcolor(INFORMATION,iTunes DCC Server has now been enabled)
+    }
+    else {
+      itpsettings enabled false
+      scid -at1 ame now has disabled their iRCTunes DCC Server [iRCTunes] 
+      echo -a $itcolor(INFORMATION,iRCTunes DCC Server has now been disabled)
+    }
+  }
+}
+alias -l itpsettings {
+  if ($isid == $true) return $readini($itconfig, it_dcc, $$1)
+  else writeini $itconfig it_dcc $$1 $$2-
+}
+on *:text:!getsong:#: {
+  if ($itpsettings(enabled) == true) {
+    if (!$com(irctunes)) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is not currently connected to iTunes)
+    }
+    elseif ($com(irctunes)) && ($itinfo(shortlocation) == COM Error) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is unable to fetch now playing information at the moment due to an error)
+    }
+    else {
+      .notice $nick $itcolor(REMOTE,GETSONG request accepted - preparing to send file $nopath($itinfo(location)))
+      .timerdcc $+ $rand(1000,9999) 1 $rand(2,4) .dcc send $nick $itinfo(shortlocation)
+    }
+  }
+  else {
+    .notice $nick $itcolor(REMOTE,iRCTunes DCC Server is currently disabled)
+  }
+  .echo -a $itcolor(INFORMATION,$+($iif($network,$network,$server),->,$nick) requested a copy of your currently playing song in iTunes via iRCTunes DCC Server)
+}
+ctcp *:getsong: {
+  if ($itpsettings(enabled) == true) {
+    if (!$com(irctunes)) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is not currently connected to iTunes)
+    }
+    elseif ($com(irctunes)) && ($itinfo(shortlocation) == COM Error) {
+      .notice $nick $itcolor(REMOTE,iRCTunes is unable to fetch now playing information at the moment due to an error)
+    }
+    else {
+      .notice $nick $itcolor(REMOTE,GETSONG request accepted - preparing to send file $nopath($itinfo(location)))
+      .timerdcc $+ $rand(1000,9999) 1 $rand(2,4) .dcc send $nick $itinfo(shortlocation)
+    }
+  }
+  else {
+    .notice $nick $itcolor(REMOTE,iRCTunes DCC Server is currently disabled)
+  }
+  .echo -a $itcolor(INFORMATION,$+($iif($network,$network,$server),->,$nick) requested a copy of your currently playing song in iTunes via iRCTunes DCC Server CTCP)
+  halt
+}
